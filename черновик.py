@@ -1,53 +1,48 @@
-import pandas as pd
 from lxml import etree
 import numpy as np
 
+
+def getId(x):
+    return None if x.find('OKRB_ID') is None else x.find('OKRB_ID').text
+
+def getParentId(x):
+    return None if x.find('PARENT_ID') is None else x.find('PARENT_ID').text
+
+def getExpl(x):
+    return None if x.find('EXPLANATIONS') is None else x.find('EXPLANATIONS').text
+
+def getName(x):
+    return None if x.find('OKRB_NAME') is None else x.find('OKRB_NAME').text
+
+def getCode(x):
+    return None if x.find('OKRB_CODE') is None else x.find('OKRB_CODE').text
+
+
 treeOKRB = etree.parse('OKRB007.xml')
 rootOKRB = treeOKRB.getroot()
-keys=[]
-values=[]
-notFound=0
 rows=rootOKRB.findall('row')
-ids=[row.find('OKRB_ID').text for row in rows]
-parents=[row.find('PARENT_ID').text for row in rows]
-parents=[i for i in parents if parents.count(i)==1]
-leaves=[row for row in rows if not (row.find('OKRB_ID').text in parents)]
-for i in leaves:
-    pass
+dictOKRB={}
 for row in rows:
-    code=row.find('OKRB_CODE')
-    klass=row.find('OKRB_NAME')
-    expl=row.find('EXPLANATIONS')
-    id=row.find('OKRB_ID')
-    parentID=row.find('PARENT_ID')
+    code=getCode(row)
+    klass=getName(row)
+    expl=getExpl(row)
     if code is not None and klass is not None:
-        keys.append(code.text)
         if expl is not None:
-            values.append((klass.text,expl.text))
+            dictOKRB[code]=(klass,expl)
         else:
-            values.append((klass.text,''))
-dictOKRB={k:v for k,v in zip(keys,values)}
+            dictOKRB[code]=(klass,'')
 treeGPC = etree.parse('GPC as of November 2021 (GDSN) v20211209 RU.xml')
 rootGPC = treeGPC.getroot()
-iteratorGPC=rootGPC.iter()
-keys=[]
-values=[]
+dictBrick={}
 for i in rootGPC.findall('.//brick'):
-    keys.append(i.attrib['text'])
-    values.append(i.attrib['code'])
-dictBrick={k:v for k,v in zip(keys,values)}
+    dictBrick[i.attrib['text']]=(i.attrib['code'],i.attrib['definition'])
+dictClass={}
+iterator=rootGPC.iter()
 
-keys=[]
-values=[]
-for i in rootGPC.findall('.//class'):
-    keys.append(i.attrib['text'])
-    values.append(i.attrib['code'])
-dictClass={k:v for k,v in zip(keys,values)}
-"""
-while current is not None:
-    if current.tag=='OKRB_CODE':
-        keys.append(current.text)
-        current=next(iteratorGPC)
-        values.append(current.text)
-    current=next(iteratorGPC)
- """
+for i in iterator:
+    if i.tag in ['family','class','segment']:
+        dictClass[i.attrib['code']]=(i.attrib['text'],i.attrib['definition'])
+""" for i in rootGPC.findall('.//family','.//class','.//segment'):
+    dictClass[i.attrib['text']]=(i.attrib['code'], i.attrib['definition'])
+print(dictClass) """
+print(dictClass)
