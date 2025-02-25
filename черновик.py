@@ -21,7 +21,7 @@ def getDefinitionGPC(x):
     return x.attrib['definition']
 def getIerarchyGPC(brick, tree):
     res=[]
-    curr=brick.getparent() #поиск брика по коду
+    curr=brick.getparent()
     for i in range(3):
         res.append(curr)
         curr=curr.getparent()
@@ -50,18 +50,4 @@ bricks=rootGPC.findall('.//brick')
 dictBrick={}
 for i in bricks:
     dictBrick[i.attrib['code']]=[i.attrib['text'],i.attrib['definition'], getAttributes(i)]
-#print(getIerarchyGPC(bricks[52].attrib['code'],treeGPC))
 print(list(map(getCodeGPC,getIerarchyGPC(bricks[52],treeGPC))))
-""" dictClass={}
-classes=rootGPC.findall('.//class')
-print([i.attrib['code'] for i in classes])
-for i in classes:
-    dictClass[i.attrib['code']]=[i.attrib['text'],i.attrib['definition']]
-dictFamily={}
-families=rootGPC.findall('.//family')
-for i in families:
-    dictFamily[i.attrib['code']]=[i.attrib['text'],i.attrib['definition']]
-dictSegment={}
-segments=rootGPC.findall('.//segment')
-for i in segments:
-    dictSegment[i.attrib['code']]=[i.attrib['text'],i.attrib['definition']] """
