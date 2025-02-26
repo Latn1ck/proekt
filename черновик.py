@@ -1,4 +1,5 @@
 from lxml import etree
+import pandas as pd
 
 
 def getIdOKRB(x):
@@ -19,15 +20,26 @@ def getTextGPC(x):
     return x.attrib['text']
 def getDefinitionGPC(x):
     return x.attrib['definition']
-def getIerarchyGPC(brick, tree):
+def getIerarchyGPC(brick,root):
     res=[]
     curr=brick.getparent()
-    for i in range(3):
+    while not curr==root:
         res.append(curr)
         curr=curr.getparent()
     return res
+def getParentOKRB(elem,tree):
+    elemParentID=getParentIdOKRB(elem)
+    t=tree.xpath(f"//row[OKRB_ID[contains(text(), '{elemParentID}')]]")
+    return None if t==[] else t[0]
 def getIerarchyOKRB(elem,tree):
     res=[]
+    curr=elem
+    next=getParentOKRB(curr,tree)
+    root=tree.getroot()
+    while not curr==next:
+        curr=getParentOKRB(curr,tree)
+        next=getParentOKRB(next,tree)
+        res.append(curr)
     return res
 treeOKRB = etree.parse('OKRB007.xml')
 rootOKRB = treeOKRB.getroot()
@@ -42,7 +54,6 @@ for row in rows:
             dictOKRB[code]=[klass,expl]
         else:
             dictOKRB[code]=[klass,'']
-
 treeGPC = etree.parse('GPC as of November 2021 (GDSN) v20211209 RU.xml')
 element = treeGPC.xpath("//brick[@code='10001441']")[0]
 rootGPC = treeGPC.getroot()
@@ -50,4 +61,10 @@ bricks=rootGPC.findall('.//brick')
 dictBrick={}
 for i in bricks:
     dictBrick[i.attrib['code']]=[i.attrib['text'],i.attrib['definition'], getAttributes(i)]
-print(list(map(getCodeGPC,getIerarchyGPC(bricks[52],treeGPC))))
+
+
+df=pd.read_excel('D:/проект/kusok.xlsx')
+kusok=df.head(300)
+kusokOKRB=pd.DataFrame(kusok['Okrb007'])
+kusokOKRB['col2'] = kusokOKRB['Okrb007'].map(dictOKRB)
+print(kusokOKRB)
