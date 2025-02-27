@@ -1,7 +1,6 @@
 from lxml import etree
 import pandas as pd
 
-
 def getIdOKRB(x):
     return None if x.find('OKRB_ID') is None else x.find('OKRB_ID').text
 def getParentIdOKRB(x):
@@ -44,27 +43,37 @@ def getIerarchyOKRB(elem,tree):
 treeOKRB = etree.parse('OKRB007.xml')
 rootOKRB = treeOKRB.getroot()
 rows=rootOKRB.findall('row')
-dictOKRB={}
+dictOKRBklass={}
+dictOKRBexpl={}
 for row in rows:
     code=getCodeOKRB(row)
     klass=getNameOKRB(row)
     expl=getExplOKRB(row)
     if code is not None and klass is not None:
         if expl is not None:
-            dictOKRB[code]=[klass,expl]
+            dictOKRBklass[code]=klass
+            dictOKRBexpl[code]=expl
         else:
-            dictOKRB[code]=[klass,'']
+            dictOKRBklass[code]=klass
+            dictOKRBexpl[code]=''
 treeGPC = etree.parse('GPC as of November 2021 (GDSN) v20211209 RU.xml')
 element = treeGPC.xpath("//brick[@code='10001441']")[0]
 rootGPC = treeGPC.getroot()
 bricks=rootGPC.findall('.//brick')
-dictBrick={}
+dictBrickText={}
+dictBrickDefinition={}
 for i in bricks:
-    dictBrick[i.attrib['code']]=[i.attrib['text'],i.attrib['definition'], getAttributes(i)]
-
+    dictBrickText[i.attrib['code']]=i.attrib['text']
+    dictBrickDefinition[i.attrib['code']]=i.attrib['definition']
+dictBrickDefinition['0']=''
+dictBrickText['0']=''
 
 df=pd.read_excel('D:/проект/kusok.xlsx')
 kusok=df.head(300)
-kusokOKRB=pd.DataFrame(kusok['Okrb007'])
-kusokOKRB['col2'] = kusokOKRB['Okrb007'].map(dictOKRB)
-print(kusokOKRB)
+kusokOKRB=pd.DataFrame(kusok[['Okrb007', 'GpcBrick', 'Functionalname']])
+kusokOKRB['OKRB_class'] = kusokOKRB['Okrb007'].map(dictOKRBklass)
+kusokOKRB['OKRB_expl']=kusokOKRB['Okrb007'].map(dictOKRBexpl)
+kusokOKRB['GpcBrick'] =kusokOKRB['GpcBrick'].fillna(0).map(int).map(str)
+kusokOKRB['GPC_class'] = kusokOKRB['GpcBrick'].map(dictBrickText)
+kusokOKRB['GPC_expl']=kusokOKRB['GpcBrick'].map(dictBrickDefinition)
+kusokOKRB=kusokOKRB.reindex(columns=['Okrb007','OKRB_class','OKRB_expl','GpcBrick','GPC_class','GPC_expl','Functionalname'])
