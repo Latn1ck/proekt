@@ -1,6 +1,7 @@
 from lxml import etree
 import pandas as pd
 
+
 def getIdOKRB(x):
     return None if x.find('OKRB_ID') is None else x.find('OKRB_ID').text
 def getParentIdOKRB(x):
@@ -40,6 +41,7 @@ def getIerarchyOKRB(elem,tree):
         next=getParentOKRB(next,tree)
         res.append(curr)
     return res
+
 treeOKRB = etree.parse('OKRB007.xml')
 rootOKRB = treeOKRB.getroot()
 rows=rootOKRB.findall('row')
@@ -56,8 +58,8 @@ for row in rows:
         else:
             dictOKRBklass[code]=klass
             dictOKRBexpl[code]=''
+
 treeGPC = etree.parse('GPC as of November 2021 (GDSN) v20211209 RU.xml')
-element = treeGPC.xpath("//brick[@code='10001441']")[0]
 rootGPC = treeGPC.getroot()
 bricks=rootGPC.findall('.//brick')
 dictBrickText={}
@@ -67,10 +69,9 @@ for i in bricks:
     dictBrickDefinition[i.attrib['code']]=i.attrib['definition']
 dictBrickDefinition['0']=''
 dictBrickText['0']=''
-
-df=pd.read_excel('D:/проект/kusok.xlsx')
-kusok=df.head(300)
-kusokOKRB=pd.DataFrame(kusok[['Okrb007', 'GpcBrick', 'Functionalname']])
+df=pd.read_csv('C:/проект/parsed_tradeitem.csv',sep=";",low_memory=False)
+df=df.head(300)
+kusokOKRB=pd.DataFrame(df[['Okrb007', 'GpcBrick', 'Functionalname']])
 kusokOKRB['OKRB_class'] = kusokOKRB['Okrb007'].map(dictOKRBklass)
 kusokOKRB['OKRB_expl']=kusokOKRB['Okrb007'].map(dictOKRBexpl)
 kusokOKRB['GpcBrick'] =kusokOKRB['GpcBrick'].fillna(0).map(int).map(str)
