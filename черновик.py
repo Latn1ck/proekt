@@ -44,7 +44,7 @@ def getIerarchyOKRB(elem,tree):
 
 treeOKRB = etree.parse('OKRB007.xml')
 rootOKRB = treeOKRB.getroot()
-rows=rootOKRB.findall('row')
+rows=rootOKRB.findall('row') #все элементы дерева ОКРБ
 dictOKRBklass={}
 dictOKRBexpl={}
 for row in rows:
@@ -61,7 +61,7 @@ for row in rows:
 
 treeGPC = etree.parse('GPC as of November 2021 (GDSN) v20211209 RU.xml')
 rootGPC = treeGPC.getroot()
-bricks=rootGPC.findall('.//brick')
+bricks=rootGPC.findall('.//brick') #все брики
 dictBrickText={}
 dictBrickDefinition={}
 for i in bricks:
@@ -69,7 +69,7 @@ for i in bricks:
     dictBrickDefinition[i.attrib['code']]=i.attrib['definition']
 dictBrickDefinition['0']=''
 dictBrickText['0']=''
-df=pd.read_csv('C:/проект/parsed_tradeitem.csv',sep=";",low_memory=False)
+df=pd.read_csv('D:/проект/parsed_tradeitem.csv',sep=";",low_memory=False)
 df=df.head(300)
 kusokOKRB=pd.DataFrame(df[['Okrb007', 'GpcBrick', 'Functionalname']])
 kusokOKRB['OKRB_class'] = kusokOKRB['Okrb007'].map(dictOKRBklass)
@@ -78,3 +78,4 @@ kusokOKRB['GpcBrick'] =kusokOKRB['GpcBrick'].fillna(0).map(int).map(str)
 kusokOKRB['GPC_class'] = kusokOKRB['GpcBrick'].map(dictBrickText)
 kusokOKRB['GPC_expl']=kusokOKRB['GpcBrick'].map(dictBrickDefinition)
 kusokOKRB=kusokOKRB.reindex(columns=['Okrb007','OKRB_class','OKRB_expl','GpcBrick','GPC_class','GPC_expl','Functionalname'])
+kusokOKRB.to_excel('shorthand.xlsx')
