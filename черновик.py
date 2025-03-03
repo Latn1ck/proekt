@@ -1,7 +1,7 @@
 from lxml import etree
 import pandas as pd
-
-
+import numpy as np
+import matplotlib.pyplot as plt
 def getIdOKRB(x):
     return None if x.find('OKRB_ID') is None else x.find('OKRB_ID').text
 def getParentIdOKRB(x):
@@ -21,6 +21,8 @@ def getTextGPC(x):
 def getDefinitionGPC(x):
     return x.attrib['definition']
 def getIerarchyGPC(brick,root):
+    if brick==root:
+        return 0
     res=[]
     curr=brick.getparent()
     while not curr==root:
@@ -32,19 +34,35 @@ def getParentOKRB(elem,tree):
     t=tree.xpath(f"//row[OKRB_ID[contains(text(), '{elemParentID}')]]")
     return None if t==[] else t[0]
 def getIerarchyOKRB(elem,tree):
+    if elem==tree.getroot():
+        return 0
     res=[]
     curr=elem
     next=getParentOKRB(curr,tree)
-    root=tree.getroot()
     while not curr==next:
         curr=getParentOKRB(curr,tree)
         next=getParentOKRB(next,tree)
         res.append(curr)
     return res
+def getCodeTNVED(x):
+    return x.attrib['code'] if 'code' in x.attrib.keys() else None
+def getNameTNVED(x):
+    return x.attrib['name'] if 'name' in x.attrib.keys() else ''
+def getIerarchyTNVED(item,root):
+    if item==root:
+        return 0
+    res=[]
+    curr=item.getparent()
+    while not curr==root:
+        res.append(curr)
+        curr=curr.getparent()
+    return res
+def transform(brick):
+    return np.nan if np.isnan(brick) else int(brick)
 
-treeOKRB = etree.parse('OKRB007.xml')
+treeOKRB = etree.parse('OKRB007.xml') #depth=8
 rootOKRB = treeOKRB.getroot()
-rows=rootOKRB.findall('row') #все элементы дерева ОКРБ
+rows=rootOKRB.findall('row')
 dictOKRBklass={}
 dictOKRBexpl={}
 for row in rows:
@@ -58,7 +76,6 @@ for row in rows:
         else:
             dictOKRBklass[code]=klass
             dictOKRBexpl[code]=''
-
 treeGPC = etree.parse('GPC as of November 2021 (GDSN) v20211209 RU.xml')
 rootGPC = treeGPC.getroot()
 bricks=rootGPC.findall('.//brick') #все брики
@@ -69,13 +86,29 @@ for i in bricks:
     dictBrickDefinition[i.attrib['code']]=i.attrib['definition']
 dictBrickDefinition['0']=''
 dictBrickText['0']=''
-df=pd.read_csv('D:/проект/parsed_tradeitem.csv',sep=";",low_memory=False)
-df=df.head(300)
-kusokOKRB=pd.DataFrame(df[['Okrb007', 'GpcBrick', 'Functionalname']])
-kusokOKRB['OKRB_class'] = kusokOKRB['Okrb007'].map(dictOKRBklass)
-kusokOKRB['OKRB_expl']=kusokOKRB['Okrb007'].map(dictOKRBexpl)
-kusokOKRB['GpcBrick'] =kusokOKRB['GpcBrick'].fillna(0).map(int).map(str)
-kusokOKRB['GPC_class'] = kusokOKRB['GpcBrick'].map(dictBrickText)
-kusokOKRB['GPC_expl']=kusokOKRB['GpcBrick'].map(dictBrickDefinition)
-kusokOKRB=kusokOKRB.reindex(columns=['Okrb007','OKRB_class','OKRB_expl','GpcBrick','GPC_class','GPC_expl','Functionalname'])
-kusokOKRB.to_excel('shorthand.xlsx')
+maxDepthGPC=max([len(getIerarchyGPC(i,rootGPC)) for i in bricks]) #3
+depths=[len(getIerarchyGPC(i,rootGPC)) for i in bricks]
+
+treeTNVED=etree.parse('tnved.xml')
+rootTNVED=treeTNVED.getroot()
+items=rootTNVED.findall('.//item')
+maxDepthTNVED=max([len(getIerarchyTNVED(i,rootTNVED)) for i in items]) #12
+parentsTNVED=list(set([i.getparent() for i in rootTNVED.iter()]))
+leavesTNVED=[i for i in rootTNVED.iter() if not i in parentsTNVED]
+depths=[len(getIerarchyTNVED(i,rootTNVED)) for i in leavesTNVED]
+dictItemName={}
+for i in rootTNVED.iter():
+    code=getCodeTNVED(i)
+    name=getNameTNVED(i)
+    if not code is None:
+        dictItemName[code]=name
+
+df=pd.read_excel('D:/проект/kusok.xlsx')
+col=list(df['GpcBrick'])
+keys=list(set(col))
+values=[col.count(i) for i in keys]
+plt.bar(keys, values, edgecolor='black')
+plt.title('Гистограмма частот')
+plt.xlabel('Брики')
+plt.ylabel('Частоты')
+plt.show()
