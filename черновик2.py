@@ -1,16 +1,10 @@
+import chernovik as ch
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.decomposition import PCA
-import numpy as np
+def f(x):
+    return '00' if pd.isna(x) else x[:2]
 
-
-df=pd.read_csv('D:/проект/kusok.csv')
-text_data=df[df.select_dtypes('object').columns].drop('Okrb007',axis=1)
-numerical_data=df[df.select_dtypes(('int64','float64','bool')).columns]
-tfidf = TfidfVectorizer()
-text_features = np.concatenate((tfidf.fit_transform(text_data).toarray().reshape(50,50),np.empty((250,50))),axis=0)
-print(text_features.shape)
-combined_data = np.hstack((numerical_data, text_features))
-pca = PCA(n_components=50)
-reduced_data = pca.fit_transform(combined_data)
-print(reduced_data)
+df=ch.df
+y=df['Okrb007']
+l=list(y)
+print(list(set([f(i) for i in l])))
+#'09', '29', '22', '56', '31', '32', '37', '07', ' 1', '41', '08', '70', '27', '92', '39', '34', '93', '72', '77', '45', '35', '3.', '01', '61', '24', '95', '10', '62', '02', '16', '43', '52', '40', '11', '15', '03', '5.', '1.', '21', '42', '96', '36', '.', '23', '30', '63', '47', '50', '91', '98', '90', 'Ко', '06', '46', '28', '00', '12', '18', '7.', '13', '19', '33', '20', '2.', '51', '71', '14', '8.', '05', '85', '26', '58', '38', '25', '0,', '86', '17'
