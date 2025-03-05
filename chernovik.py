@@ -1,7 +1,8 @@
 from lxml import etree
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+
+
 def getIdOKRB(x):
     return None if x.find('OKRB_ID') is None else x.find('OKRB_ID').text
 def getParentIdOKRB(x):
