@@ -17,4 +17,9 @@ df=ch.df
 nans=pd.DataFrame(df.isna().sum())
 nans=nans.rename(columns={0:'score'})
 nans['Freq']=nans['score']/df.shape[0]
-nans.to_excel('nans.xlsx')
+nans=nans.T
+threshold=0.9
+train=df.copy()
+train=train.drop(columns=list(nans.loc[:, nans.loc['Freq']>threshold].columns))
+train=train.sample(n=50000, random_state=42)
+train.to_excel('train.xlsx')
