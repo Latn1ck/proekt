@@ -13,13 +13,20 @@ def getChapter(x):
         return '0'+x[0]
     return x[:2]
 
-df=ch.df
+df=pd.read_csv('parsed_tradeitem.csv',sep=';')
+print(list(set(df['Ticountryoflastprocessing'])))
 nans=pd.DataFrame(df.isna().sum())
 nans=nans.rename(columns={0:'score'})
 nans['Freq']=nans['score']/df.shape[0]
 nans=nans.T
 threshold=0.9
+vectorDim=10
 train=df.copy()
-train=train.drop(columns=list(nans.loc[:, nans.loc['Freq']>threshold].columns))
+okrbLabels=train['Okrb007']
+okrbLabels=okrbLabels.apply(getChapter)
+print(okrbLabels)
+bricks=train['GpcBrick']
+gpcLabels=train[['GpcSegm','GpcFamily','GpcClass']]
+tnvedLabels=train[['Tnvedcode','Tnvedpath']]
+train=train.drop(columns=list(nans.loc[:, nans.loc['Freq']>threshold].columns)+['Okrb007','GpcBrick','GpcSegm','GpcFamily','GpcClass','Tnvedcode','Tnvedpath'])  
 train=train.sample(n=50000, random_state=42)
-train.to_excel('train.xlsx')
