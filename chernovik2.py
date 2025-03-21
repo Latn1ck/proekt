@@ -1,16 +1,18 @@
 import pandas as pd
 import re
 import numpy as np
+import torch.nn as nn
+
 
 def getChapter(x):
     if pd.isna(x):
-        return '00'
+        return 0
     x=re.sub(r'[а-яА-я\s]','',x)
     if len(x)==1:
-        return '00'
+        return 0
     if x[1] in ['.',',']:
-        return '0'+x[0]
-    return x[:2]
+        return int(x[0])
+    return int(x[:2])
 def countryToInt(x):
     if pd.isna(x):
         return 0
@@ -33,8 +35,7 @@ nans.to_excel('nans.xlsx')
 threshold=0.9
 train=kusok.copy()
 okrbLabels=train['Okrb007']
-okrbLabels=okrbLabels.apply(getChapter)
-train['OkrbLabel']=okrbLabels
+train['OkrbLabel']=okrbLabels.apply(getChapter)
 bricks=train['GpcBrick']
 gpcLabels=train[['GpcSegm','GpcFamily','GpcClass']]
 tnvedLabels=train[['Tnvedcode','Tnvedpath']]
@@ -43,3 +44,10 @@ unnecColumns=['WeightUOM']
 train=train.drop(columns=list(nans.loc[:, nans.loc['Freq']>threshold].columns)+classColumns+unnecColumns)  
 train=train.sample(n=50000, random_state=42)
 train.to_excel('train.xlsx')
+model = nn.Sequential(
+    nn.Linear(10, 20),  # Вход размером 10, выход 20
+    nn.ReLU(),          # Функция активации
+    nn.Linear(20, 1)    # Вход размером 20, выход 1
+)
+
+print(model)
