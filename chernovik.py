@@ -103,5 +103,3 @@ for i in rootTNVED.iter():
     name=getNameTNVED(i)
     if not code is None:
         dictItemName[code]=name
-
-df=pd.read_csv('D:/проект/parsed_tradeitem.csv', sep=';',low_memory=False)
