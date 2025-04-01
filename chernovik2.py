@@ -38,13 +38,13 @@ bricks=train['GpcBrick']
 gpcLabels=train[['GpcSegm','GpcFamily','GpcClass']]
 tnvedLabels=train[['Tnvedcode','Tnvedpath']]
 classColumns=['Okrb007Path','Okrb007','GpcBrick','GpcSegm','GpcFamily','GpcClass','Tnvedcode','Tnvedpath']
+okrbLabels=train['Okrb007']
+train['OkrbLabel']=okrbLabels.apply(getChapter)
+okrbLabels=np.array(okrbLabels)
 unnecColumns=['WeightUOM']
 train=train.drop(columns=list(nans.loc[:, nans.loc['Freq']>threshold].columns)+classColumns+unnecColumns)  
 train=train.sample(n=50000, random_state=42)
-func=np.array(train['Functionalname'])
-okrbLabels=np.array(train['Okrb007'])
-train['OkrbLabel']=okrbLabels.apply(getChapter)
 okrbLabels=np.array(train['OkrbLabel'])
 train=train.drop(columns=['Istradeitemmarkedasrecyclable','PackageLevelCode'])
 counts=pd.DataFrame(train.nunique())
-func=train['Functionalname']
+func=np.array(train['Functionalname'])
