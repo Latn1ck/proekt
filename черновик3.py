@@ -18,7 +18,7 @@ dictOKRB=ch.dictOKRBklass
 shortDictOKRB={k:chapterPreprocess(v) for k,v in zip(dictOKRB.keys(),dictOKRB.values()) if len(k)==2}
 X=ch2.func
 yTrue=ch2.okrbLabels
-ix=np.array(random.sample(list(range(len(X))),k=1000))
+ix=np.random.choice(np.arange(len(X)), size=1000, replace=False)
 XSample=X[ix]
 ySample=yTrue[ix]
 reference_texts={k:v for k,v in zip(shortDictOKRB.keys(),shortDictOKRB.values())}
