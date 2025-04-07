@@ -6,13 +6,13 @@ import torch.nn as nn
 
 def getChapter(x):
     if pd.isna(x):
-        return '0'
+        return 0
     x=re.sub(r'[а-яА-я\s]','',x)
     if len(x)==1:
-        return '0'
+        return 0
     if x[1] in ['.',',']:
-        return x[0]
-    return x[:2]
+        return int(x[0])
+    return int(x[:2])
 
 df=pd.read_csv('parsed_tradeitem.csv',sep=';',quotechar='"', skipinitialspace=True)
 kusok=df.head(100000)
