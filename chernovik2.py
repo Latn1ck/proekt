@@ -14,8 +14,8 @@ def getChapter(x):
         return int(x[0])
     return int(x[:2])
 
-df=pd.read_csv('parsed_tradeitem.csv',sep=';',quotechar='"', skipinitialspace=True)
-kusok=df.head(100000)
+df=pd.read_csv('parsed_tradeitem.csv',sep=';',quotechar='"',skipinitialspace=True,chunksize=100000)
+kusok=next(df)
 nans=pd.DataFrame(kusok.isna().sum())
 nans=nans.rename(columns={0:'score'})
 nans['Freq']=nans['score']/kusok.shape[0]
@@ -31,7 +31,9 @@ okrbLabels=np.array(okrbLabels)
 train=train.sample(n=50000, random_state=42)
 X_train=np.array(train['Functionalname'])
 y_train=np.array(train['Okrb007'].apply(getChapter))
-test=df.iloc[100001:120001]
+train_df=pd.DataFrame({'sample':X_train,'label':y_train})
+test=next(df)
 test=test.sample(n=5000,random_state=42)
 X_test=np.array(test['Functionalname'])
 y_test=np.array(test['Okrb007'].apply(getChapter))
+test_df=pd.DataFrame({'sample':X_test,'label':y_test})
