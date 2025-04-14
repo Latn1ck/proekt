@@ -1,9 +1,22 @@
-import fasttext.util
 import numpy as np
 import chernovik as ch
 import pandas as pd
 import chernovik2 as ch2
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LogisticRegression
+from sentence_transformers import SentenceTransformer
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
 
+
+def plot_hystogram(a, name):
+    a_keys, a_counts=np.unique(a, return_counts=True)
+    a_values=np.array([i/len(a) for i in a_counts])
+    plt.bar(a_keys, a_values)
+    plt.xlabel('Классы')
+    plt.ylabel('Частоты')
+    plt.title(f'Гистограмма {name}')
+    plt.show()
 
 def cosine_similarity(a,b):
     if np.all(a==0) or np.all(b==0):
@@ -27,52 +40,56 @@ for i in dictOKRBexpl.keys():
     else:
         shortDictOKRB[i]=chapterPreprocess(dictOKRBklass[i])
 shortDictOKRB={k:chapterPreprocess(v) for k,v in zip(shortDictOKRB.keys(),shortDictOKRB.values()) if len(k)==2}
-shortDictOKRB[0]=''
-shortDictOKRB=dict(sorted(shortDictOKRB.items()))
-shortDictOKRBReversed={v:k for k,v in zip(shortDictOKRB.keys(),shortDictOKRB.values())}
 #подгрузка датасета
-train_df=ch2.train_df
-print(train_df)
-print(train_df['label'].dtype)
-train_df['fasttext']='__label__' + train_df['label'].map(shortDictOKRBReversed) + ' ' + train_df['sample']
-print(train_df['fasttext'])
-train_df['fasttext'].to_csv("train.txt", index=False, header=False, sep="\n")
-test_df=ch2.test_df
-X_test=np.array(test_df['sample'])
-y_test=np.array(test_df['label'])
+dataset=ch2.dataset
+X_train, X_test, y_train, y_test = train_test_split(np.array(dataset['sample']), np.array(dataset['label']), test_size=0.2, random_state=42)
 #инициализация модели
-fasttext.util.download_model('ru', if_exists='ignore')
-# Загрузить модель
-model = fasttext.load_model('cc.ru.300.bin')
+model = SentenceTransformer("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
 #эмбеддинги описаний классов
-OKRBEmbeddings = {k:model.get_sentence_vector(v) for k,v in zip(shortDictOKRB.keys(),shortDictOKRB.values())}
-keys=np.array(list(OKRBEmbeddings.keys()))
+print('начинаем делать эмбеддинги')
+trainEmbeddings=model.encode(X_train)
+testEmbeddings=model.encode(X_test)
+print('эмбеддинги готовы')
+#логистическая регрессия
+LogRegr=LogisticRegression()
+LogRegr.fit(trainEmbeddings,y_train)
 #предикт
-y_pred=np.zeros(y_test.shape)
-for i in range(len(y_test)):
-    newEmb=model.get_sentence_vector(X_test[i])
-    sims=np.array([cosine_similarity(newEmb,j) for j in OKRBEmbeddings.values()])
-    result=keys[np.argmax(sims)]
-    y_pred[i]=result
-#результаты
-""" считаем точность, делаем датафрейм с тестовыми образцами и предиктами """
-print(f'Accuracy: {accuracy(y_test,y_pred)}')
-res=pd.DataFrame({'sample':X_test, 'true label':y_test,'predict':y_pred})
+y_predLogRegr=LogRegr.predict(testEmbeddings)
+#результаты логистической регрессии
+""" считаем точность, делаем датафрейм с тестовыми образцами и предиктами,рисуем гистограммы, составляем confusion matrix """
+print(f'Logistic Regression Accuracy: {accuracy(y_test,y_predLogRegr)}')
+ix=np.array([i for i in range(len(y_test)) if not y_test[i] in [14,15]])
+y_testShort=y_test[ix]
+y_predShort=y_predLogRegr[ix]
+print(f'Logistic Regression Accuracy without 14 and 15: {accuracy(y_testShort, y_predShort)}')
+ix=np.array(['00']+list(shortDictOKRB.keys())).astype(int)
+N=len(ix)
 
-#fine tuning
-надо привести датасет в надлежащий вид
-modelFT = fasttext.train_supervised(input='train.txt', dim=300,epoch=50,lr=0.1, wordNgrams=2,verbose=2 )
-#новые эмбеддинги описаний классов
-OKRBEmbeddingsFT = {k:model.get_sentence_vector(v) for k,v in zip(shortDictOKRB.keys(),shortDictOKRB.values())}
-keys=np.array(list(OKRBEmbeddingsFT.keys()))
-#новый предикт
-y_predFT=np.zeros(y_test.shape)
-for i in range(len(y_test)):
-    newEmb=modelFT.get_sentence_vector(X_test[i])
-    sims=np.array([cosine_similarity(newEmb,j) for j in OKRBEmbeddingsFT.values()])
-    result=keys[np.argmax(sims)]
-    y_predFT[i]=result
-#новые результаты
-print(f'new accuracy: {accuracy(y_test,y_predFT)}')
-res['predict FT']=y_predFT
+matrixLogRegr=np.zeros((N,N),dtype=int)
+for i in range(N):
+    for j in range(N):
+        matrixLogRegr[i][j]=len([k for k in range(len(y_test)) if y_test[k]==ix[i] and y_predLogRegr[k]==ix[j]])
+matLogRegr=pd.DataFrame(matrixLogRegr,columns=[f'predicted_{i}' for i in ix], index=[f'actual_{i}' for i in ix])
+matLogRegr.to_excel('ConfusionMatrixLogRegr.xlsx')
+plot_hystogram(y_test, 'y_test')
+plot_hystogram(y_predLogRegr, 'y_pred')
+#svm
+svm= SVC(decision_function_shape='ovr',C=1.0,kernel='rbf',gamma='scale',random_state=42)
+svm.fit(trainEmbeddings,y_train)
+y_predSVM=svm.predict(testEmbeddings)
+print(f'SVM Accuracy: {accuracy(y_test,y_predSVM)}')
+ix=np.array([i for i in range(len(y_test)) if not y_test[i] in [14,15]])
+y_predSVMShort=y_predSVM[ix]
+print(f'SVM Accuracy without 14 and 15: {accuracy(y_testShort, y_predSVMShort)}')
+matrixSVM=np.zeros((N,N),dtype=int)
+for i in range(N):
+    for j in range(N):
+        matrixSVM[i][j]=len([k for k in range(len(y_test)) if y_test[k]==ix[i] and y_predSVM[k]==ix[j]])
+matSVM=pd.DataFrame(matrixSVM,columns=[f'predicted_{i}' for i in ix], index=[f'actual_{i}' for i in ix])
+matSVM.to_excel('ConfusionMatrixSVM.xlsx')
+plot_hystogram(y_predSVM, 'y_SVM')
+#bayes
+
+
+res=pd.DataFrame({'sample':X_test, 'true label':y_test,'predictLogRegr':y_predLogRegr, 'predictSVM':y_predSVM})
 res.to_excel('res.xlsx')

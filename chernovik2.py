@@ -1,7 +1,6 @@
 import pandas as pd
 import re
 import numpy as np
-import torch.nn as nn
 
 
 def getChapter(x):
@@ -14,26 +13,17 @@ def getChapter(x):
         return int(x[0])
     return int(x[:2])
 
-df=pd.read_csv('parsed_tradeitem.csv',sep=';',quotechar='"',skipinitialspace=True,chunksize=100000)
-kusok=next(df)
-nans=pd.DataFrame(kusok.isna().sum())
-nans=nans.rename(columns={0:'score'})
-nans['Freq']=nans['score']/kusok.shape[0]
-nans=nans.T
-threshold=0.9
-train=kusok.copy()
-bricks=train['GpcBrick']
-gpcLabels=train[['GpcSegm','GpcFamily','GpcClass']]
-tnvedLabels=train[['Tnvedcode','Tnvedpath']]
-classColumns=['Okrb007Path','Okrb007','GpcBrick','GpcSegm','GpcFamily','GpcClass','Tnvedcode','Tnvedpath']
-okrbLabels=train['Okrb007']
-okrbLabels=np.array(okrbLabels)
-train=train.sample(n=50000, random_state=42)
-X_train=np.array(train['Functionalname'])
-y_train=np.array(train['Okrb007'].apply(getChapter))
-train_df=pd.DataFrame({'sample':X_train,'label':y_train})
-test=next(df)
-test=test.sample(n=5000,random_state=42)
-X_test=np.array(test['Functionalname'])
-y_test=np.array(test['Okrb007'].apply(getChapter))
-test_df=pd.DataFrame({'sample':X_test,'label':y_test})
+df=pd.read_csv('parsed_tradeitem.csv',sep=';',quotechar='"',skipinitialspace=True)
+df=df.head(500000)
+df['OkrbChapter']=df['Okrb007'].apply(getChapter)
+dataset=pd.DataFrame({'sample':df['Functionalname'],'label':df['OkrbChapter']})
+ix=np.unique(np.array(df['OkrbChapter']))
+split=[dataset[dataset['label']==i] for i in ix]
+short=[i for i in split if len(i)<1007]
+long=[i for i in split if len(i)>1007]
+dataset = pd.concat(short, axis=0, ignore_index=True)
+for i in long:
+    N=int(np.round(np.random.normal(1000, 50)))
+    sample=i.sample(n=N,random_state=42)
+    dataset=pd.concat([dataset,sample],axis=0,ignore_index=True)
+dataset=dataset.sample(frac=1).reset_index(drop=True)
