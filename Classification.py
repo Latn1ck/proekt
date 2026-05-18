@@ -47,6 +47,7 @@ model = SentenceTransformer("sentence-transformers/paraphrase-multilingual-MiniL
 #эмбеддинги описаний классов
 trainEmbeddings=model.encode(X_train)
 testEmbeddings=model.encode(X_test)
+print(trainEmbeddings[0].shape)
 #стандартизация
 scaler = StandardScaler()
 train_scaled = scaler.fit_transform(trainEmbeddings)

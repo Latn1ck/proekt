@@ -91,7 +91,6 @@ maxDepthGPC=max([len(getIerarchyGPC(i,rootGPC)) for i in bricks]) #=3
 treeTNVED=etree.parse('tnved.xml')
 rootTNVED=treeTNVED.getroot()
 items=rootTNVED.findall('.//item')
-maxDepthTNVED=max([len(getIerarchyTNVED(i,rootTNVED)) for i in items]) #=12, средняя глубина ~5
 parentsTNVED=list(set([i.getparent() for i in rootTNVED.iter()]))
 leavesTNVED=[i for i in rootTNVED.iter() if not i in parentsTNVED]
 depths=[len(getIerarchyTNVED(i,rootTNVED)) for i in leavesTNVED]
@@ -101,3 +100,5 @@ for i in rootTNVED.iter():
     name=getNameTNVED(i)
     if not code is None:
         dictItemName[code]=name
+q=lambda x:x[:4]+x[5:7]
+dictSix={q(k):dictItemName[k] for k in dictItemName.keys() if len(k)==7}
