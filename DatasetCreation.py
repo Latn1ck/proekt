@@ -1,11 +1,11 @@
 import pandas as pd
-import numpy as np
-import XMLPreproccesing as ch1
-
+import tnved
 df=pd.read_csv('df_all.txt')
-X=df['Functionalname']+' '+df['Variant']+' '+df['Consist']
-y=df['Tnvedcode'].apply(lambda x:x[:4]+x[5:7])
-d=ch1.dictSix
-z=y.apply(lambda x:d[x])
+X= list(df['Functionalname'].fillna('') + ' ' +df['Variant'].fillna('') + ' ' +df['Consist'].fillna(''))
+y=list(df['Tnvedcode'].str.replace(' ', '', regex=False).astype(str).str[:6])
+l=lambda x:tnved.dict[x] if x in tnved.dict.keys() else ''
+z=list(map(l,y))
 dataset=pd.DataFrame({'X':X,'y':y,'z':z})
-dataset.sample(1000).to_excel('head1.xlsx')
+dataset=dataset[dataset['y'].str.len()>4]
+dataset=dataset[dataset['z']!='']
+dataset.sample(1000).to_excel('datahead1.xlsx')
