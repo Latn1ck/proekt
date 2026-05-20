@@ -4,9 +4,7 @@ import pandas as pd
 def join_categories(group):
     strings = group.tolist()
     first = strings[0]
-    # Извлекаем категорию из первой строки
     category = first.split(':')[0] + ': '
-    
     result = [first]
     for s in strings[1:]:
         if s.startswith(category):
@@ -23,3 +21,4 @@ del df['Подробности']
 del df['Тариф']
 result = df.groupby('Код6')['Наименование'].agg(join_categories).reset_index()
 dict={k:v for k,v in zip(result['Код6'],result['Наименование'])}
+reverseDict={v:k for k,v in zip(dict.keys(),dict.values())}
