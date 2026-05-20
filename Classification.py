@@ -1,29 +1,22 @@
 from datetime import datetime
 import DatasetCreation as ch2
+from sentence_transformers import SentenceTransformer
+import faiss
+import numpy as np
+import tnved 
 
-start=datetime.now()
-print(f'Начало: {start}')
-X,y=ch2.X,ch2.y
-#X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.20, random_state=42)
-#model = SentenceTransformer('Nehc/e5-large-ru')
-finish=datetime.now()
-def split_hierarchy(text):
-    """
-    Разбивает иерархический текст на уровни.
-    Пример: 'Обувь: Прочая обувь: с верхом из пластмассы'
-    -> ['Обувь', 'Обувь: Прочая обувь', 'Обувь: Прочая обувь: с верхом из пластмассы']
-    """
-    parts = text.split(':')
-    hierarchies = []
-    current_hierarchy = []
-    for part in parts:
-        if part.strip():  # Игнорируем пустые части
-            current_hierarchy.append(part.strip())
-            hierarchies.append(': '.join(current_hierarchy))
-    return hierarchies
+print(f'Начало: {datetime.now()}')
+model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+df=ch2.dataset
+tnvedData=tnved.df
+X=list(df['X'])
+y=list(df['y'])
+classesCodes=list(tnved.df['Код6'])
+classesStrings=list(tnved.df['Наименование'])
+X_embeddings=np.load('X_embeddings.npy')
+classEmbeddings=np.load('z_embeddings.npy')
+classDict={k:v for k,v in zip(y,classEmbeddings)}
+index=faiss.IndexFlatIP(classEmbeddings.shape[1])
+index.add(classEmbeddings.astype(np.float32))
 
-# Пример использования
-text = "Обувь, гетры и аналогичные изделия; их детали: Прочая обувь с подошвой и с верхом из резины или пластмассы: обувь прочая: прочая: с защитным металлическим подноском"
-levels = split_hierarchy(text)
-print(levels)
-print(f'Конец: {finish}')
+print(f'Конец: {datetime.now()}')
