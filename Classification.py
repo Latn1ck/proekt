@@ -1,46 +1,47 @@
 from datetime import datetime
 import DatasetCreation as ch2
 from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer,SentenceTransformerTrainer,SentenceTransformerTrainingArguments
+from sentence_transformers.losses import GISTEmbedLoss
 import faiss
 import numpy as np
 import tnved 
 import pandas as pd
+from datasets import Dataset
 
 print(f'Начало: {datetime.now()}')
 df=ch2.dataset
 tnvedData=tnved.df
 X=list(df['X'])
 y=list(df['y'])
+z=list(df['z'])
+negative=list(df['negative'])
 classesCodes=list(tnvedData['Код6'])
 classesStrings=list(tnvedData['Наименование'])
+#fine tuning
 model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-X_embeddings=np.load('X_embeddings.npy')
-classEmbeddings=np.load('z_embeddings.npy')
-classDict={k:v for k,v in zip(y,classEmbeddings)}
-
-#тестовые данные
-test=ch2.test
-X_test=list(test['X'])
-X_test_embeddings=np.load('X_test_embeddings.npy')
-yTest=list(test['y'])
-
+trainData=[{'query':X[i],'positive':z[i],'negative':negative[i]} for i in range(len(X))]
+trainDataset=Dataset.from_list(trainData)
+guide_model=SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+loss = GISTEmbedLoss(model, guide_model=guide_model)
+args = SentenceTransformerTrainingArguments(
+    output_dir="finetuned_product_classifier", # Папка для сохранения модели
+    num_train_epochs=3,                         # Количество эпох
+    per_device_train_batch_size=32,             # Размер батча (чем больше, тем лучше, но зависит от VRAM)
+    learning_rate=2e-5,                         # Скорость обучения (стандартное значение для fine-tuning)
+    warmup_ratio=0.1,                           # Доля шагов для прогрева learning rate
+    save_strategy="epoch",                      # Сохранять модель после каждой эпохи
+    logging_steps=100,                          # Логировать каждые 100 шагов
+)
+trainer = SentenceTransformerTrainer(model=model,args=args,train_dataset=trainDataset,loss=loss)
+trainer.train()
+model.save_pretrained("finetuned_product_classifier/final")
 #классификация
-quantizer = faiss.IndexFlatL2(384)
 nlist=4000
 nProbe=64
 dim=384
 k=3
-index = faiss.IndexIVFFlat(quantizer,dim,nlist,faiss.METRIC_L2)
-index.train(X_embeddings)
-index.add(X_test_embeddings)
-index.nprobe=nProbe
-D, I = index.search(X_test_embeddings, k)
-print(I.shape)
-yPred1=[y[i] for i in I[:,0]]
-yPred2=[y[i] for i in I[:,1]]
-yPred3=[y[i] for i in I[:,2]]
-final=pd.DataFrame({'X':X_test,'y':yTest,'yPred1':yPred1,'yPred2':yPred2,'yPred3':yPred3})
-final.to_excel('final.xlsx')
-accuracy=(np.sum(yPred1==yTest)+np.sum(yPred2==yTest)+np.sum(yPred3==yTest))/len(yTest)
-print(f'accuracy {accuracy}')
+quantizer = faiss.IndexFlatL2(dim)
+index = faiss.IndexIVFFlat(quantizer,dim,nlist,faiss.METRIC_INNER_PRODUCT)
+
 print(f'Конец: {datetime.now()}')
